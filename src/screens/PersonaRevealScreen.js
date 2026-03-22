@@ -3,212 +3,330 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, Animated, ScrollView,
 } from 'react-native';
+import Svg, {
+  Circle, Ellipse, Rect, Path, Line, Polygon, G,
+} from 'react-native-svg';
 import { COLORS, FONTS, RADIUS } from '../theme';
 import { PERSONAS } from '../data/quizData';
 import { getPersonaResult } from '../utils/store';
 
-function PersonaCharacter({ personaKey, size = 80, delay = 0 }) {
-  const bobAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0)).current;
+// ─── colour map ───────────────────────────────────────────────────────────────
+// character = full saturated colour, face = light tint, card = very light pastel bg
+const PERSONA_COLORS = {
+  lazy_gourmet:       { character: '#D85A7A', face: '#FDEEF3', card: '#FADDE6' },
+  efficient_explorer: { character: '#0D3D2E', face: '#D6EFE8', card: '#C8DDD8' },
+  vibe_chaser:        { character: '#7C3AED', face: '#EDE9FE', card: '#DDD6FD' },
+  culture_vulture:    { character: '#C8830A', face: '#FEF3C7', card: '#FDECC8' },
+  slow_traveller:     { character: '#4A5568', face: '#EEF0F8', card: '#D8DCE8' },
+};
 
-  const persona = PERSONAS[personaKey];
-  const color = persona?.color || COLORS.teal;
+const getCardColor = (personaKey) =>
+  PERSONA_COLORS[personaKey]?.card || '#E0F7F4';
+
+// ─── accessories ──────────────────────────────────────────────────────────────
+function Broccoli() {
+  return (
+    <G rotation="-22" origin="50, 20">
+      <Rect x="47" y="16" width="6" height="18" rx="3" fill="#3B6D11" />
+      <Circle cx="50" cy="19" r="9" fill="#5A9E1A" />
+      <Circle cx="41" cy="21" r="7.5" fill="#5A9E1A" />
+      <Circle cx="59" cy="21" r="7.5" fill="#5A9E1A" />
+      <Circle cx="44" cy="13" r="7.5" fill="#6BBF1F" />
+      <Circle cx="56" cy="13" r="7.5" fill="#6BBF1F" />
+      <Circle cx="50" cy="10" r="7.5" fill="#6BBF1F" />
+      <Circle cx="44" cy="14" r="2.2" fill="#3B6D11" opacity="0.4" />
+      <Circle cx="50" cy="10" r="2.2" fill="#3B6D11" opacity="0.4" />
+      <Circle cx="56" cy="14" r="2.2" fill="#3B6D11" opacity="0.4" />
+    </G>
+  );
+}
+
+function Compass() {
+  return (
+    <>
+      <Circle cx="50" cy="14" r="12" fill="#FFD166" />
+      <Circle cx="50" cy="14" r="9" fill="#fff" opacity="0.92" />
+      <Polygon points="50,7 52,15 50,14 48,15" fill="#FF6B6B" />
+      <Polygon points="50,21 52,14 50,14 48,14" fill="#0D3D2E" />
+      <Line x1="50" y1="4"  x2="50" y2="7"  stroke="#0D3D2E" strokeWidth="1.2" strokeLinecap="round" />
+      <Line x1="50" y1="21" x2="50" y2="24" stroke="#0D3D2E" strokeWidth="1.2" strokeLinecap="round" />
+      <Line x1="40" y1="14" x2="43" y2="14" stroke="#0D3D2E" strokeWidth="1.2" strokeLinecap="round" />
+      <Line x1="57" y1="14" x2="60" y2="14" stroke="#0D3D2E" strokeWidth="1.2" strokeLinecap="round" />
+    </>
+  );
+}
+
+function Sunglasses() {
+  return (
+    <>
+      <Rect x="26" y="24" width="15" height="9" rx="4.5" fill="#0D3D2E" />
+      <Rect x="59" y="24" width="15" height="9" rx="4.5" fill="#0D3D2E" />
+      <Rect x="41" y="27" width="18" height="3" fill="#0D3D2E" />
+      <Line x1="26" y1="28" x2="22" y2="28" stroke="#0D3D2E" strokeWidth="2" strokeLinecap="round" />
+      <Line x1="74" y1="28" x2="78" y2="28" stroke="#0D3D2E" strokeWidth="2" strokeLinecap="round" />
+      <Rect x="27" y="25" width="13" height="7" rx="3.5" fill="#7C3AED" opacity="0.3" />
+      <Rect x="60" y="25" width="13" height="7" rx="3.5" fill="#7C3AED" opacity="0.3" />
+    </>
+  );
+}
+
+function OpenBook() {
+  return (
+    <>
+      <Rect x="22" y="6" width="56" height="26" rx="4" fill="#fff" stroke="#C8830A" strokeWidth="1.5" />
+      <Line x1="50" y1="6"  x2="50" y2="32" stroke="#C8830A" strokeWidth="1.5" />
+      <Path d="M50 6 Q46 19 50 32" stroke="#C8830A" strokeWidth="1" fill="none" />
+      <Line x1="26" y1="13" x2="48" y2="13" stroke="#C8830A" strokeWidth="1" opacity="0.5" />
+      <Line x1="26" y1="18" x2="48" y2="18" stroke="#C8830A" strokeWidth="1" opacity="0.5" />
+      <Line x1="26" y1="23" x2="48" y2="23" stroke="#C8830A" strokeWidth="1" opacity="0.5" />
+      <Line x1="52" y1="13" x2="74" y2="13" stroke="#C8830A" strokeWidth="1" opacity="0.5" />
+      <Line x1="52" y1="18" x2="74" y2="18" stroke="#C8830A" strokeWidth="1" opacity="0.5" />
+      <Line x1="52" y1="23" x2="74" y2="23" stroke="#C8830A" strokeWidth="1" opacity="0.5" />
+    </>
+  );
+}
+
+// ─── shared eye / brow helpers ────────────────────────────────────────────────
+function NormalEyes() {
+  return (
+    <>
+      <Circle cx="38" cy="53" r="8.5" fill="#fff" />
+      <Circle cx="38" cy="53" r="5.5" fill="#0D3D2E" />
+      <Circle cx="40" cy="51" r="2"   fill="#fff" />
+      <Circle cx="62" cy="53" r="8.5" fill="#fff" />
+      <Circle cx="62" cy="53" r="5.5" fill="#0D3D2E" />
+      <Circle cx="64" cy="51" r="2"   fill="#fff" />
+    </>
+  );
+}
+
+function NaturalBrows() {
+  return (
+    <>
+      <Path d="M29 42 Q38 39 46 41" fill="none" stroke="#0D3D2E" strokeWidth="2.6" strokeLinecap="round" />
+      <Path d="M54 41 Q62 39 71 42" fill="none" stroke="#0D3D2E" strokeWidth="2.6" strokeLinecap="round" />
+    </>
+  );
+}
+
+// ─── per-persona face content ─────────────────────────────────────────────────
+function LazyGourmetFace() {
+  return (
+    <>
+      <Broccoli />
+      <NaturalBrows />
+      <NormalEyes />
+      <Path d="M37 66 Q50 76 63 66" stroke="#0D3D2E" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    </>
+  );
+}
+
+function EfficientExplorerFace() {
+  return (
+    <>
+      <Compass />
+      <Path d="M26 40 Q35 36 42 38" fill="none" stroke="#0D3D2E" strokeWidth="2.8" strokeLinecap="round" />
+      <Path d="M74 40 Q65 36 58 38" fill="none" stroke="#0D3D2E" strokeWidth="2.8" strokeLinecap="round" />
+      <NormalEyes />
+      <Path d="M33 66 Q46 72 63 62" stroke="#0D3D2E" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    </>
+  );
+}
+
+function VibeChaserFace() {
+  return (
+    <>
+      <Sunglasses />
+      <Path d="M15 32 L17 27 L19 32 L15 32Z" fill="#FFD166" />
+      <Path d="M81 26 L83 21 L85 26 L81 26Z" fill="#FFD166" />
+      <Circle cx="13" cy="46" r="3" fill="#FFD166" opacity="0.7" />
+      <Circle cx="87" cy="42" r="2" fill="#FFD166" opacity="0.6" />
+      <Circle cx="38" cy="52" r="8.5" fill="#7C3AED" />
+      <Path d="M38 45 L39.5 50 L45 50 L40.8 53 L42.5 58 L38 55 L33.5 58 L35.2 53 L31 50 L36.5 50Z" fill="#FFD166" />
+      <Circle cx="62" cy="52" r="8.5" fill="#7C3AED" />
+      <Path d="M62 45 L63.5 50 L69 50 L64.8 53 L66.5 58 L62 55 L57.5 58 L59.2 53 L55 50 L60.5 50Z" fill="#FFD166" />
+      <Path d="M32 65 Q50 80 68 65" stroke="#7C3AED" strokeWidth="2.4" fill="#7C3AED" fillOpacity="0.12" strokeLinecap="round" />
+    </>
+  );
+}
+
+function CultureVultureFace() {
+  return (
+    <>
+      <OpenBook />
+      <NaturalBrows />
+      <Circle cx="38" cy="53" r="10"  fill="#fff"    stroke="#0D3D2E" strokeWidth="2" />
+      <Circle cx="62" cy="53" r="10"  fill="#fff"    stroke="#0D3D2E" strokeWidth="2" />
+      <Line x1="48" y1="53" x2="52" y2="53" stroke="#0D3D2E" strokeWidth="2" />
+      <Line x1="28" y1="51" x2="24" y2="49" stroke="#0D3D2E" strokeWidth="2" strokeLinecap="round" />
+      <Line x1="72" y1="51" x2="76" y2="49" stroke="#0D3D2E" strokeWidth="2" strokeLinecap="round" />
+      <Circle cx="38" cy="54" r="5.5" fill="#0D3D2E" />
+      <Circle cx="62" cy="54" r="5.5" fill="#0D3D2E" />
+      <Circle cx="39.5" cy="52.5" r="1.8" fill="#fff" />
+      <Circle cx="63.5" cy="52.5" r="1.8" fill="#fff" />
+      <Path d="M36 67 Q50 76 64 67" stroke="#0D3D2E" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    </>
+  );
+}
+
+function SlowTravellerFace() {
+  return (
+    <>
+      <Path d="M28 52 Q38 45 48 52" fill="none" stroke="#0D3D2E" strokeWidth="3"   strokeLinecap="round" />
+      <Path d="M52 52 Q62 45 72 52" fill="none" stroke="#0D3D2E" strokeWidth="3"   strokeLinecap="round" />
+      <Line x1="31" y1="50" x2="29" y2="47" stroke="#0D3D2E" strokeWidth="1.5" strokeLinecap="round" />
+      <Line x1="45" y1="50" x2="47" y2="47" stroke="#0D3D2E" strokeWidth="1.5" strokeLinecap="round" />
+      <Line x1="55" y1="50" x2="53" y2="47" stroke="#0D3D2E" strokeWidth="1.5" strokeLinecap="round" />
+      <Line x1="69" y1="50" x2="71" y2="47" stroke="#0D3D2E" strokeWidth="1.5" strokeLinecap="round" />
+      <Path d="M38 68 Q50 77 62 68" stroke="#0D3D2E" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    </>
+  );
+}
+
+// ─── Zzz overlay (rendered outside SVG using Animated.Text) ──────────────────
+function ZzzOverlay({ size }) {
+  const anim1 = useRef(new Animated.Value(0)).current;
+  const anim2 = useRef(new Animated.Value(0)).current;
+  const anim3 = useRef(new Animated.Value(0)).current;
+
+  const makeLoop = (anim, delay) =>
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 600, useNativeDriver: true }),
+        Animated.delay(600),
+      ])
+    );
+
+  useEffect(() => {
+    makeLoop(anim1, 0).start();
+    makeLoop(anim2, 800).start();
+    makeLoop(anim3, 1600).start();
+  }, []);
+
+  const scale = size / 100;
+
+  return (
+    <>
+      {[
+        { anim: anim1, left: 60 * scale, top: 22 * scale, fontSize: 12 * scale },
+        { anim: anim2, left: 70 * scale, top: 13 * scale, fontSize: 15 * scale },
+        { anim: anim3, left: 81 * scale, top:  4 * scale, fontSize: 18 * scale },
+      ].map(({ anim, left, top, fontSize }, i) => (
+        <Animated.Text
+          key={i}
+          style={{
+            position:   'absolute',
+            left,
+            top,
+            fontSize,
+            fontWeight: '900',
+            color:      '#4A5568',
+            opacity:    anim,
+            transform:  [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [4, -10] }) }],
+          }}
+        >
+          Z
+        </Animated.Text>
+      ))}
+    </>
+  );
+}
+
+// ─── main PersonaCharacter component ─────────────────────────────────────────
+function PersonaCharacter({ personaKey, size = 80, delay = 0 }) {
+  const bobAnim   = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.sequence([
       Animated.delay(delay),
       Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 6,
-        useNativeDriver: true,
+        toValue: 1, tension: 50, friction: 6, useNativeDriver: true,
       }),
     ]).start();
 
     setTimeout(() => {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(bobAnim, {
-            toValue: -8,
-            duration: 1200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(bobAnim, {
-            toValue: 0,
-            duration: 1200,
-            useNativeDriver: true,
-          }),
+          Animated.timing(bobAnim, { toValue: -10, duration: 1200, useNativeDriver: true }),
+          Animated.timing(bobAnim, { toValue: 0,   duration: 1200, useNativeDriver: true }),
         ])
       ).start();
     }, delay + 400);
   }, []);
 
-  const eyeSize = size * 0.13;
-  const pupilSize = size * 0.07;
+  const colors = PERSONA_COLORS[personaKey] || PERSONA_COLORS.lazy_gourmet;
 
-  const renderAccessory = () => {
-    switch (personaKey) {
-      case 'lazy_gourmet':
-        return (
-          <View style={{ position: 'absolute', top: -8, left: size * 0.15 }}>
-            <Text style={{ fontSize: 14 }}>✨</Text>
-          </View>
-        );
-      case 'efficient_explorer':
-        return (
-          <View style={{ position: 'absolute', top: -10, alignSelf: 'center' }}>
-            <Text style={{ fontSize: 16 }}>🧭</Text>
-          </View>
-        );
-      case 'vibe_chaser':
-        return (
-          <View style={{ position: 'absolute', top: -10, right: size * 0.1 }}>
-            <Text style={{ fontSize: 14 }}>⭐</Text>
-          </View>
-        );
-      case 'culture_vulture':
-        return (
-          <View style={{ position: 'absolute', top: -10, alignSelf: 'center' }}>
-            <Text style={{ fontSize: 14 }}>📖</Text>
-          </View>
-        );
-      case 'slow_traveller':
-        return (
-          <View style={{ position: 'absolute', top: -10, left: size * 0.2 }}>
-            <Text style={{ fontSize: 14 }}>☁️</Text>
-          </View>
-        );
-      default:
-        return null;
-    }
-  };
+  const faceContent = {
+    lazy_gourmet:       <LazyGourmetFace />,
+    efficient_explorer: <EfficientExplorerFace />,
+    vibe_chaser:        <VibeChaserFace />,
+    culture_vulture:    <CultureVultureFace />,
+    slow_traveller:     <SlowTravellerFace />,
+  }[personaKey] || <LazyGourmetFace />;
 
   return (
     <Animated.View style={{
-      transform: [
-        { scale: scaleAnim },
-        { translateY: bobAnim },
-      ],
+      transform: [{ scale: scaleAnim }, { translateY: bobAnim }],
       alignItems: 'center',
     }}>
       <View style={{ position: 'relative', alignItems: 'center' }}>
-        {renderAccessory()}
-        <View style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-          alignItems: 'center',
-          justifyContent: 'center',
-          shadowColor: color,
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.35,
-          shadowRadius: 16,
-          elevation: 8,
-        }}>
-          <View style={{
-            flexDirection: 'row',
-            gap: size * 0.15,
-            marginBottom: size * 0.06,
-          }}>
-            {[0, 1].map(i => (
-              <View key={i} style={{
-                width: eyeSize * 1.6,
-                height: eyeSize * 1.8,
-                borderRadius: eyeSize,
-                backgroundColor: '#fff',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <View style={{
-                  width: pupilSize,
-                  height: pupilSize * 1.2,
-                  borderRadius: pupilSize,
-                  backgroundColor: '#1A1A1A',
-                }} />
-              </View>
-            ))}
-          </View>
-          <View style={{
-            width: size * 0.38,
-            height: size * 0.16,
-            borderBottomLeftRadius: size * 0.2,
-            borderBottomRightRadius: size * 0.2,
-            borderWidth: 2.5,
-            borderColor: '#fff',
-            borderTopWidth: 0,
-          }} />
-        </View>
-        <View style={{ alignItems: 'center', marginTop: 2 }}>
-          <View style={{
-            width: 4,
-            height: 14,
-            backgroundColor: color,
-            borderRadius: 2,
-          }} />
-          <View style={{
-            width: 12,
-            height: 4,
-            borderRadius: 10,
-            backgroundColor: color,
-            opacity: 0.2,
-            marginTop: 1,
-          }} />
-        </View>
+        <Svg width={size} height={size * 1.28} viewBox="0 0 100 128">
+          {/* shadow */}
+          <Ellipse cx="50" cy="124" rx="20" ry="5" fill={colors.character} opacity="0.2" />
+          {/* pin stem */}
+          <Rect x="47" y="96" width="6" height="24" rx="3" fill={colors.character} />
+          {/* body blob */}
+          <Ellipse cx="50" cy="82" rx="27" ry="17" fill={colors.character} />
+          {/* head */}
+          <Circle cx="50" cy="54" r="34" fill={colors.character} />
+          {/* face */}
+          <Circle cx="50" cy="54" r="27" fill={colors.face} />
+          {/* cheeks */}
+          <Ellipse cx="25" cy="63" rx="9" ry="6" fill="#FFB3B3" opacity="0.5" />
+          <Ellipse cx="75" cy="63" rx="9" ry="6" fill="#FFB3B3" opacity="0.5" />
+          {/* persona face */}
+          {faceContent}
+        </Svg>
+        {/* Zzz sits outside SVG as Animated.Text */}
+        {personaKey === 'slow_traveller' && <ZzzOverlay size={size} />}
       </View>
     </Animated.View>
   );
 }
 
+// ─── screen ───────────────────────────────────────────────────────────────────
 export default function PersonaRevealScreen({ navigation }) {
-  const headerAnim = useRef(new Animated.Value(0)).current;
+  const headerAnim      = useRef(new Animated.Value(0)).current;
   const primaryCardAnim = useRef(new Animated.Value(0)).current;
   const secondaryCardAnim = useRef(new Animated.Value(0)).current;
-  const buttonAnim = useRef(new Animated.Value(0)).current;
-  const primarySlide = useRef(new Animated.Value(40)).current;
-  const secondarySlide = useRef(new Animated.Value(40)).current;
+  const buttonAnim      = useRef(new Animated.Value(0)).current;
+  const primarySlide    = useRef(new Animated.Value(40)).current;
+  const secondarySlide  = useRef(new Animated.Value(40)).current;
 
-  const quizResult = getPersonaResult();
-  const primaryPersona = PERSONAS[quizResult?.primary] || PERSONAS['lazy_gourmet'];
+  const quizResult       = getPersonaResult();
+  const primaryPersona   = PERSONAS[quizResult?.primary]   || PERSONAS['lazy_gourmet'];
   const secondaryPersona = PERSONAS[quizResult?.secondary] || PERSONAS['slow_traveller'];
+
+  // use new colour map for card backgrounds
+  const primaryColor   = getCardColor(quizResult?.primary);
+  const secondaryColor = PERSONA_COLORS[quizResult?.secondary]?.character || COLORS.teal;
 
   useEffect(() => {
     if (!quizResult) return;
     Animated.sequence([
-      Animated.timing(headerAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
+      Animated.timing(headerAnim,      { toValue: 1, duration: 400, useNativeDriver: true }),
       Animated.parallel([
-        Animated.timing(primaryCardAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(primarySlide, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
+        Animated.timing(primaryCardAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(primarySlide,    { toValue: 0, duration: 500, useNativeDriver: true }),
       ]),
       Animated.parallel([
-        Animated.timing(secondaryCardAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(secondarySlide, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
+        Animated.timing(secondaryCardAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(secondarySlide,    { toValue: 0, duration: 400, useNativeDriver: true }),
       ]),
-      Animated.timing(buttonAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
+      Animated.timing(buttonAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
   }, [quizResult]);
 
@@ -216,10 +334,8 @@ export default function PersonaRevealScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.inner}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.inner} showsVerticalScrollIndicator={false}>
+
         <Animated.Text style={[styles.headerLabel, { opacity: headerAnim }]}>
           YOUR TRAVEL SOUL
         </Animated.Text>
@@ -227,13 +343,9 @@ export default function PersonaRevealScreen({ navigation }) {
         <Animated.View style={[styles.primaryCard, {
           opacity: primaryCardAnim,
           transform: [{ translateY: primarySlide }],
-          backgroundColor: primaryPersona.color,
+          backgroundColor: primaryColor,
         }]}>
-          <PersonaCharacter
-            personaKey={quizResult.primary}
-            size={80}
-            delay={300}
-          />
+          <PersonaCharacter personaKey={quizResult.primary} size={120} delay={300} />
           <Text style={styles.primaryName}>{primaryPersona.name}</Text>
           <Text style={styles.primaryTagline}>{primaryPersona.tagline}</Text>
           <View style={styles.divider} />
@@ -245,14 +357,12 @@ export default function PersonaRevealScreen({ navigation }) {
             opacity: secondaryCardAnim,
             transform: [{ translateY: secondarySlide }],
           }]}>
-            <PersonaCharacter
-              personaKey={quizResult.secondary}
-              size={40}
-              delay={700}
-            />
+            <PersonaCharacter personaKey={quizResult.secondary} size={64} delay={700} />
             <View style={styles.secondaryText}>
               <Text style={styles.secondaryLabel}>With a streak of</Text>
-              <Text style={styles.secondaryName}>{secondaryPersona.name}</Text>
+              <Text style={[styles.secondaryName, { color: secondaryColor }]}>
+                {secondaryPersona.name}
+              </Text>
               <Text style={styles.secondaryTagline}>{secondaryPersona.tagline}</Text>
             </View>
           </Animated.View>
@@ -269,10 +379,7 @@ export default function PersonaRevealScreen({ navigation }) {
           <TouchableOpacity
             onPress={() => navigation.reset({
               index: 1,
-              routes: [
-                { name: 'Splash' },
-                { name: 'Quiz' },
-              ],
+              routes: [{ name: 'Splash' }, { name: 'Quiz' }],
             })}
             activeOpacity={0.7}
           >
@@ -314,24 +421,24 @@ const styles = StyleSheet.create({
   primaryName: {
     fontSize: 24,
     fontWeight: FONTS.bold,
-    color: '#fff',
+    color: '#0D3D2E',
     textAlign: 'center',
     marginTop: 8,
   },
   primaryTagline: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
+    color: '#4A8A78',
     textAlign: 'center',
   },
   divider: {
     width: '60%',
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.1)',
     marginVertical: 8,
   },
   primaryDescription: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.9)',
+    color: '#2D5A4A',
     textAlign: 'center',
     fontStyle: 'italic',
     lineHeight: 20,
@@ -359,7 +466,6 @@ const styles = StyleSheet.create({
   secondaryName: {
     fontSize: 15,
     fontWeight: FONTS.bold,
-    color: COLORS.tealDark,
     marginBottom: 2,
   },
   secondaryTagline: {
