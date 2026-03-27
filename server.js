@@ -83,6 +83,8 @@ CRITICAL INSTRUCTIONS:
 5. Every stop must have a real place name that exists in ${destination}
 6. Tailor descriptions to the persona's voice and priorities
 7. Budget context: ${budgetNote}
+8. Set id_required: true ONLY for stops that genuinely require ID/passport (age-restricted bars, some museums, border areas). Most stops should be false.
+9. why_this_suits_you must be specific to the persona — never generic. e.g. for Lazy Gourmet: "Because you deserve to sit somewhere beautiful with exceptional food and zero guilt about taking two hours over lunch."
 
 Respond with this exact JSON structure:
 {
@@ -102,7 +104,9 @@ Respond with this exact JSON structure:
           "duration": "e.g. 1.5 hrs",
           "description": "2-3 sentences in the persona's voice explaining why this stop and what to do/eat/see",
           "tip": "one insider tip or practical note",
-          "cost": "estimated cost per person e.g. Free, $10-15, $30+"
+          "cost": "estimated cost per person e.g. Free, $10-15, $30+",
+          "why_this_suits_you": "1-2 sentences explaining exactly why THIS stop suits THIS persona specifically — not generic, deeply personal to their travel style",
+          "id_required": false
         }
       ]
     }

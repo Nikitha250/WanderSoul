@@ -291,6 +291,7 @@ export default function GeneratingScreen({ navigation, route }) {
       clearInterval(msgRef.current);
       clearInterval(dotsRef.current);
 
+      console.log('STOP SAMPLE:', JSON.stringify(result.itinerary.days[0].stops[0], null, 2));
       navigation.replace('Itinerary', { itinerary: result.itinerary, tripData });
     } catch (error) {
       console.error('Generate error:', error);
