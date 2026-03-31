@@ -282,6 +282,17 @@ export default function GeneratingScreen({ navigation, route }) {
 
       if (!response.ok) {
         const err = await response.json();
+        // for user-facing errors (400), go back to trip setup
+        if (response.status === 400) {
+          clearInterval(msgRef.current);
+          clearInterval(dotsRef.current);
+          Alert.alert(
+            'Cannot generate trip',
+            err.error || 'Please check your trip details and try again.',
+            [{ text: 'Go back', onPress: () => navigation.goBack() }]
+          );
+          return;
+        }
         throw new Error(err.error || 'Generation failed');
       }
 
@@ -291,7 +302,6 @@ export default function GeneratingScreen({ navigation, route }) {
       clearInterval(msgRef.current);
       clearInterval(dotsRef.current);
 
-      console.log('STOP SAMPLE:', JSON.stringify(result.itinerary.days[0].stops[0], null, 2));
       navigation.replace('Itinerary', { itinerary: result.itinerary, tripData });
     } catch (error) {
       console.error('Generate error:', error);

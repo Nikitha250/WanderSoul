@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet, Alert,
   ScrollView, TextInput, Modal, FlatList,
   Platform, Animated, KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
@@ -131,7 +131,7 @@ function DestinationModal({ visible, onClose, onSelect }) {
   };
 
   const handleSelect = (prediction) => {
-    onSelect(prediction.description);
+    onSelect(prediction.description, prediction.place_id);
     setQuery('');
     setResults([]);
     onClose();
@@ -315,7 +315,9 @@ export default function TripSetupScreen({ navigation }) {
   const persona    = PERSONAS[personaKey];
 
   // form
-  const [destination,  setDestination]  = useState('');
+  const [destination,    setDestination]    = useState('');
+  const [destinationPlaceId, setDestinationPlaceId] = useState('');
+  const [destinationTimezone, setDestinationTimezone] = useState('UTC');
   const [homeCountry,  setHomeCountry]  = useState('');
   const [landingDate,  setLandingDate]  = useState(null);
   const [landingTime,  setLandingTime]  = useState(null);
@@ -363,6 +365,18 @@ export default function TripSetupScreen({ navigation }) {
       e.landingDate = 'Did you mean next year?';
     if (landingDate && takeoffDate && takeoffDate < landingDate)
       e.takeoffDate = 'Takeoff must be after landing';
+    if (landingDate && takeoffDate) {
+      const tripDays = Math.ceil((takeoffDate - landingDate) / (1000 * 60 * 60 * 24));
+      if (tripDays > 10) {
+        // show friendly popup — don't block with a field error
+        Alert.alert(
+          '10 days max for now! 🗺️',
+          "We're still working up to world domination — WanderSoul plans trips up to 10 days for now. Pick a shorter window and we'll make it unforgettable!",
+          [{ text: 'Got it', style: 'default' }]
+        );
+        return false;
+      }
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -388,7 +402,8 @@ export default function TripSetupScreen({ navigation }) {
     const hoursUntil   = (arrival - new Date()) / (1000 * 60 * 60);
     const isLastMinute = hoursUntil <= 48 && hoursUntil > 0;
     const totalDays    = Math.ceil((departure - arrival) / (1000 * 60 * 60 * 24));
-    const usableDays   = totalDays - (arrivalMode === 'rest' ? 1 : 0);
+    const rawUsableDays = totalDays - (arrivalMode === 'rest' ? 1 : 0);
+    const usableDays     = Math.min(rawUsableDays, 10); // hard cap — never generate more than 10 days
 
     navigation.navigate('Generating', {
       tripData: {
@@ -577,7 +592,22 @@ export default function TripSetupScreen({ navigation }) {
       <DestinationModal
         visible={showDest}
         onClose={() => setShowDest(false)}
-        onSelect={(v) => { setDestination(v); clearError('destination'); }}
+        onSelect={(name, placeId) => {
+          setDestination(name);
+          setDestinationPlaceId(placeId || '');
+          clearError('destination');
+          // fetch timezone for selected destination
+          if (placeId) {
+            fetch('http://192.168.1.188:8082/timezone', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ placeId }),
+            })
+              .then(r => r.json())
+              .then(data => { if (data.timezone) setDestinationTimezone(data.timezone); })
+              .catch(() => {}); // silently fail
+          }
+        }}
       />
       <CountryModal
         visible={showCountry}
@@ -594,7 +624,8 @@ export default function TripSetupScreen({ navigation }) {
             value={landingTime} mode="time"
             onChange={(_, d) => { if (d) { setLandingTime(d); clearError('landingTime'); } }} />
           <DateTimePickerModal visible={showTakeoffDate} onClose={() => setShowTakeoffDate(false)}
-            value={takeoffDate} mode="date" minimumDate={landingDate || new Date()}
+            value={takeoffDate} mode="date"
+            minimumDate={landingDate || new Date()}
             onChange={(_, d) => { if (d) { setTakeoffDate(d); clearError('takeoffDate'); } }} />
           <DateTimePickerModal visible={showTakeoffTime} onClose={() => setShowTakeoffTime(false)}
             value={takeoffTime} mode="time"

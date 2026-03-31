@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, Animated, ScrollView,
@@ -11,7 +11,6 @@ import { PERSONAS } from '../data/quizData';
 import { getPersonaResult } from '../utils/store';
 
 // ─── colour map ───────────────────────────────────────────────────────────────
-// character = full saturated colour, face = light tint, card = very light pastel bg
 const PERSONA_COLORS = {
   lazy_gourmet:       { character: '#D85A7A', face: '#FDEEF3', card: '#FADDE6' },
   efficient_explorer: { character: '#0D3D2E', face: '#D6EFE8', card: '#C8DDD8' },
@@ -86,7 +85,6 @@ function OpenBook() {
   );
 }
 
-// ─── shared eye / brow helpers ────────────────────────────────────────────────
 function NormalEyes() {
   return (
     <>
@@ -109,7 +107,6 @@ function NaturalBrows() {
   );
 }
 
-// ─── per-persona face content ─────────────────────────────────────────────────
 function LazyGourmetFace() {
   return (
     <>
@@ -183,7 +180,7 @@ function SlowTravellerFace() {
   );
 }
 
-// ─── Zzz overlay (rendered outside SVG using Animated.Text) ──────────────────
+// ─── Zzz overlay ──────────────────────────────────────────────────────────────
 function ZzzOverlay({ size }) {
   const anim1 = useRef(new Animated.Value(0)).current;
   const anim2 = useRef(new Animated.Value(0)).current;
@@ -206,7 +203,6 @@ function ZzzOverlay({ size }) {
   }, []);
 
   const scale = size / 100;
-
   return (
     <>
       {[
@@ -214,27 +210,18 @@ function ZzzOverlay({ size }) {
         { anim: anim2, left: 70 * scale, top: 13 * scale, fontSize: 15 * scale },
         { anim: anim3, left: 81 * scale, top:  4 * scale, fontSize: 18 * scale },
       ].map(({ anim, left, top, fontSize }, i) => (
-        <Animated.Text
-          key={i}
-          style={{
-            position:   'absolute',
-            left,
-            top,
-            fontSize,
-            fontWeight: '900',
-            color:      '#4A5568',
-            opacity:    anim,
-            transform:  [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [4, -10] }) }],
-          }}
-        >
-          Z
-        </Animated.Text>
+        <Animated.Text key={i} style={{
+          position: 'absolute', left, top, fontSize,
+          fontWeight: '900', color: '#4A5568',
+          opacity: anim,
+          transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [4, -10] }) }],
+        }}>Z</Animated.Text>
       ))}
     </>
   );
 }
 
-// ─── main PersonaCharacter component ─────────────────────────────────────────
+// ─── PersonaCharacter ─────────────────────────────────────────────────────────
 function PersonaCharacter({ personaKey, size = 80, delay = 0 }) {
   const bobAnim   = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -242,11 +229,8 @@ function PersonaCharacter({ personaKey, size = 80, delay = 0 }) {
   useEffect(() => {
     Animated.sequence([
       Animated.delay(delay),
-      Animated.spring(scaleAnim, {
-        toValue: 1, tension: 50, friction: 6, useNativeDriver: true,
-      }),
+      Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 6, useNativeDriver: true }),
     ]).start();
-
     setTimeout(() => {
       Animated.loop(
         Animated.sequence([
@@ -258,7 +242,6 @@ function PersonaCharacter({ personaKey, size = 80, delay = 0 }) {
   }, []);
 
   const colors = PERSONA_COLORS[personaKey] || PERSONA_COLORS.lazy_gourmet;
-
   const faceContent = {
     lazy_gourmet:       <LazyGourmetFace />,
     efficient_explorer: <EfficientExplorerFace />,
@@ -268,29 +251,18 @@ function PersonaCharacter({ personaKey, size = 80, delay = 0 }) {
   }[personaKey] || <LazyGourmetFace />;
 
   return (
-    <Animated.View style={{
-      transform: [{ scale: scaleAnim }, { translateY: bobAnim }],
-      alignItems: 'center',
-    }}>
+    <Animated.View style={{ transform: [{ scale: scaleAnim }, { translateY: bobAnim }], alignItems: 'center' }}>
       <View style={{ position: 'relative', alignItems: 'center' }}>
         <Svg width={size} height={size * 1.28} viewBox="0 0 100 128">
-          {/* shadow */}
           <Ellipse cx="50" cy="124" rx="20" ry="5" fill={colors.character} opacity="0.2" />
-          {/* pin stem */}
           <Rect x="47" y="96" width="6" height="24" rx="3" fill={colors.character} />
-          {/* body blob */}
           <Ellipse cx="50" cy="82" rx="27" ry="17" fill={colors.character} />
-          {/* head */}
           <Circle cx="50" cy="54" r="34" fill={colors.character} />
-          {/* face */}
           <Circle cx="50" cy="54" r="27" fill={colors.face} />
-          {/* cheeks */}
           <Ellipse cx="25" cy="63" rx="9" ry="6" fill="#FFB3B3" opacity="0.5" />
           <Ellipse cx="75" cy="63" rx="9" ry="6" fill="#FFB3B3" opacity="0.5" />
-          {/* persona face */}
           {faceContent}
         </Svg>
-        {/* Zzz sits outside SVG as Animated.Text */}
         {personaKey === 'slow_traveller' && <ZzzOverlay size={size} />}
       </View>
     </Animated.View>
@@ -299,21 +271,28 @@ function PersonaCharacter({ personaKey, size = 80, delay = 0 }) {
 
 // ─── screen ───────────────────────────────────────────────────────────────────
 export default function PersonaRevealScreen({ navigation }) {
-  const headerAnim      = useRef(new Animated.Value(0)).current;
-  const primaryCardAnim = useRef(new Animated.Value(0)).current;
+  const headerAnim        = useRef(new Animated.Value(0)).current;
+  const primaryCardAnim   = useRef(new Animated.Value(0)).current;
   const secondaryCardAnim = useRef(new Animated.Value(0)).current;
-  const buttonAnim      = useRef(new Animated.Value(0)).current;
-  const primarySlide    = useRef(new Animated.Value(40)).current;
-  const secondarySlide  = useRef(new Animated.Value(40)).current;
+  const buttonAnim        = useRef(new Animated.Value(0)).current;
+  const primarySlide      = useRef(new Animated.Value(40)).current;
+  const secondarySlide    = useRef(new Animated.Value(40)).current;
+
+  // ── AI description state ──────────────────────────────────────────────────
+  const [aiDescription, setAiDescription] = useState('');
+  const [descLoading,   setDescLoading]   = useState(true);
+  const descFade = useRef(new Animated.Value(0)).current;
 
   const quizResult       = getPersonaResult();
   const primaryPersona   = PERSONAS[quizResult?.primary]   || PERSONAS['lazy_gourmet'];
   const secondaryPersona = PERSONAS[quizResult?.secondary] || PERSONAS['slow_traveller'];
+  const personaKey       = quizResult?.primary;
+  const secondaryKey     = quizResult?.secondary;
+  const primaryColor     = getCardColor(personaKey);
+  const secondaryColor   = PERSONA_COLORS[secondaryKey]?.character || COLORS.teal;
+  const charColor        = PERSONA_COLORS[personaKey]?.character || COLORS.teal;
 
-  // use new colour map for card backgrounds
-  const primaryColor   = getCardColor(quizResult?.primary);
-  const secondaryColor = PERSONA_COLORS[quizResult?.secondary]?.character || COLORS.teal;
-
+  // ── entry animations ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!quizResult) return;
     Animated.sequence([
@@ -330,6 +309,27 @@ export default function PersonaRevealScreen({ navigation }) {
     ]).start();
   }, [quizResult]);
 
+  // ── fetch AI description ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!personaKey) return;
+    fetch('http://192.168.1.188:8082/persona-description', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ primary: personaKey, secondary: secondaryKey }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.description) {
+          setAiDescription(data.description);
+          setDescLoading(false);
+          Animated.timing(descFade, { toValue: 1, duration: 700, useNativeDriver: true }).start();
+        } else {
+          setDescLoading(false);
+        }
+      })
+      .catch(() => setDescLoading(false)); // silently fail — not critical
+  }, [personaKey]);
+
   if (!quizResult) return null;
 
   return (
@@ -345,11 +345,21 @@ export default function PersonaRevealScreen({ navigation }) {
           transform: [{ translateY: primarySlide }],
           backgroundColor: primaryColor,
         }]}>
-          <PersonaCharacter personaKey={quizResult.primary} size={120} delay={300} />
+          <PersonaCharacter personaKey={personaKey} size={120} delay={300} />
           <Text style={styles.primaryName}>{primaryPersona.name}</Text>
           <Text style={styles.primaryTagline}>{primaryPersona.tagline}</Text>
+
+          {/* ── AI-generated personalised description ── */}
           <View style={styles.divider} />
-          <Text style={styles.primaryDescription}>"{primaryPersona.description}"</Text>
+          {descLoading ? (
+            <Text style={[styles.aiDescLoading, { color: charColor }]}>· · ·</Text>
+          ) : aiDescription ? (
+            <Animated.Text style={[styles.aiDescription, { opacity: descFade }]}>
+              {aiDescription}
+            </Animated.Text>
+          ) : (
+            <Text style={styles.primaryDescription}>"{primaryPersona.description}"</Text>
+          )}
         </Animated.View>
 
         {quizResult.primary !== quizResult.secondary && (
@@ -357,7 +367,7 @@ export default function PersonaRevealScreen({ navigation }) {
             opacity: secondaryCardAnim,
             transform: [{ translateY: secondarySlide }],
           }]}>
-            <PersonaCharacter personaKey={quizResult.secondary} size={64} delay={700} />
+            <PersonaCharacter personaKey={secondaryKey} size={64} delay={700} />
             <View style={styles.secondaryText}>
               <Text style={styles.secondaryLabel}>With a streak of</Text>
               <Text style={[styles.secondaryName, { color: secondaryColor }]}>
@@ -393,106 +403,50 @@ export default function PersonaRevealScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.cream,
-  },
+  container:       { flex: 1, backgroundColor: COLORS.cream },
   inner: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 40,
-    gap: 16,
+    alignItems: 'center', paddingHorizontal: 24,
+    paddingTop: 24, paddingBottom: 40, gap: 16,
   },
   headerLabel: {
-    fontSize: 11,
-    color: COLORS.hint,
-    letterSpacing: 2,
-    fontWeight: FONTS.semibold,
-    marginBottom: 4,
+    fontSize: 11, color: COLORS.hint,
+    letterSpacing: 2, fontWeight: FONTS.semibold, marginBottom: 4,
   },
   primaryCard: {
-    width: '100%',
-    borderRadius: RADIUS.xl,
-    padding: 28,
-    alignItems: 'center',
-    gap: 8,
+    width: '100%', borderRadius: RADIUS.xl,
+    padding: 28, alignItems: 'center', gap: 8,
   },
-  primaryName: {
-    fontSize: 24,
-    fontWeight: FONTS.bold,
-    color: '#0D3D2E',
-    textAlign: 'center',
-    marginTop: 8,
+  primaryName:    { fontSize: 24, fontWeight: FONTS.bold, color: '#0D3D2E', textAlign: 'center', marginTop: 8 },
+  primaryTagline: { fontSize: 13, color: '#4A8A78', textAlign: 'center' },
+  divider:        { width: '60%', height: 1, backgroundColor: 'rgba(0,0,0,0.1)', marginVertical: 8 },
+
+  // AI description — fades in after load
+  aiDescription: {
+    fontSize: 13, lineHeight: 20, textAlign: 'center',
+    fontStyle: 'italic', color: '#2D5A4A', paddingHorizontal: 4,
   },
-  primaryTagline: {
-    fontSize: 13,
-    color: '#4A8A78',
-    textAlign: 'center',
+  aiDescLoading: {
+    fontSize: 18, textAlign: 'center', letterSpacing: 6, opacity: 0.35,
   },
-  divider: {
-    width: '60%',
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    marginVertical: 8,
-  },
+  // fallback (shown if AI call fails)
   primaryDescription: {
-    fontSize: 13,
-    color: '#2D5A4A',
-    textAlign: 'center',
-    fontStyle: 'italic',
-    lineHeight: 20,
+    fontSize: 13, color: '#2D5A4A', textAlign: 'center',
+    fontStyle: 'italic', lineHeight: 20,
   },
+
   secondaryCard: {
-    width: '100%',
-    backgroundColor: COLORS.white,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
+    width: '100%', backgroundColor: COLORS.white,
+    borderRadius: RADIUS.lg, borderWidth: 1.5,
+    borderColor: COLORS.border, padding: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 14,
   },
-  secondaryText: {
-    flex: 1,
-  },
-  secondaryLabel: {
-    fontSize: 10,
-    color: COLORS.hint,
-    marginBottom: 2,
-    fontWeight: FONTS.medium,
-  },
-  secondaryName: {
-    fontSize: 15,
-    fontWeight: FONTS.bold,
-    marginBottom: 2,
-  },
-  secondaryTagline: {
-    fontSize: 11,
-    color: COLORS.muted,
-  },
-  buttonWrap: {
-    width: '100%',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 8,
-  },
-  btnPrimary: {
-    backgroundColor: COLORS.teal,
-    borderRadius: RADIUS.md,
-    paddingVertical: 16,
-    alignItems: 'center',
-    width: '100%',
-  },
-  btnPrimaryText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: FONTS.bold,
-  },
-  retakeText: {
-    fontSize: 13,
-    color: COLORS.hint,
-    textDecorationLine: 'underline',
-  },
+  secondaryText:    { flex: 1 },
+  secondaryLabel:   { fontSize: 10, color: COLORS.hint, marginBottom: 2, fontWeight: FONTS.medium },
+  secondaryName:    { fontSize: 15, fontWeight: FONTS.bold, marginBottom: 2 },
+  secondaryTagline: { fontSize: 11, color: COLORS.muted },
+
+  buttonWrap:     { width: '100%', alignItems: 'center', gap: 12, marginTop: 8 },
+  btnPrimary:     { backgroundColor: COLORS.teal, borderRadius: RADIUS.md, paddingVertical: 16, alignItems: 'center', width: '100%' },
+  btnPrimaryText: { color: '#fff', fontSize: 16, fontWeight: FONTS.bold },
+  retakeText:     { fontSize: 13, color: COLORS.hint, textDecorationLine: 'underline' },
 });

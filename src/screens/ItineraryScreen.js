@@ -166,6 +166,7 @@ function StopCard({ stop, colors, index, isLast, destination, onReplace }) {
                 <Text style={styles.idBadgeText}>🪪 ID</Text>
               </View>
             )}
+
           </View>
           <View style={styles.stopRight}>
             {stop.cost && (
@@ -187,14 +188,6 @@ function StopCard({ stop, colors, index, isLast, destination, onReplace }) {
           <Text style={[styles.stopDescription, { color: colors.text + 'CC' }]}>
             {stop.description}
           </Text>
-
-          {/* why this suits you — teal highlight box */}
-          {stop.why_this_suits_you && (
-            <View style={[styles.whyBox, { backgroundColor: colors.card + '99', borderLeftColor: colors.character }]}>
-              <Text style={[styles.whyLabel, { color: colors.character }]}>✦ Why this suits you</Text>
-              <Text style={[styles.whyText, { color: colors.text }]}>{stop.why_this_suits_you}</Text>
-            </View>
-          )}
 
           {/* tip */}
           {stop.tip && (
@@ -236,15 +229,20 @@ function StopCard({ stop, colors, index, isLast, destination, onReplace }) {
 }
 
 // ─── day view ─────────────────────────────────────────────────────────────────
-function DayView({ day, colors, destination, onReplace, onRedoDay }) {
-  // empty arrival day
+function DayView({ day, colors, destination, onReplace, onRedoDay, totalDays }) {
+  // empty day — arrival rest or departure
   if (!day.stops || day.stops.length === 0) {
+    const isLastDay = day.day === totalDays;
     return (
       <View style={styles.emptyDay}>
-        <Text style={styles.emptyDayEmoji}>✈️</Text>
-        <Text style={[styles.emptyDayTitle, { color: colors.text }]}>Arrival day</Text>
+        <Text style={styles.emptyDayEmoji}>{isLastDay ? '🧳' : '✈️'}</Text>
+        <Text style={[styles.emptyDayTitle, { color: colors.text }]}>
+          {isLastDay ? 'Time to head home' : 'Late arrival'}
+        </Text>
         <Text style={[styles.emptyDaySubtitle, { color: colors.text + '88' }]}>
-          You arrive late today — rest up.{'\n'}Your adventure starts tomorrow.
+          {isLastDay
+            ? "Pack your bags full of memories.\nYour flight awaits — safe travels! 🌍"
+            : "You've landed late — rest up and recharge.\nYour adventure begins tomorrow."}
         </Text>
       </View>
     );
@@ -415,6 +413,7 @@ export default function ItineraryScreen({ navigation, route }) {
           destination={tripData.destination}
           onReplace={handleReplace}
           onRedoDay={handleRedoDay}
+          totalDays={days.length}
         />
       )}
 
@@ -493,19 +492,12 @@ const styles = StyleSheet.create({
   idBadge:     { backgroundColor: '#FFF3CD', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: '#FFB800' },
   idBadgeText: { fontSize: 10, fontWeight: FONTS.bold, color: '#7A5800' },
 
+
   stopRight:    { alignItems: 'flex-end', gap: 2 },
   stopCost:     { fontSize: 12, fontWeight: FONTS.bold },
   stopDuration: { fontSize: 11, fontWeight: FONTS.medium, color: '#999' },
   stopName:     { fontSize: 16, fontWeight: FONTS.bold, marginBottom: 8, letterSpacing: -0.2 },
   stopDescription: { fontSize: 13, lineHeight: 20, marginBottom: 10 },
-
-  // why this suits you box
-  whyBox: {
-    borderLeftWidth: 3, borderRadius: RADIUS.sm,
-    paddingHorizontal: 10, paddingVertical: 8, marginBottom: 10,
-  },
-  whyLabel: { fontSize: 11, fontWeight: FONTS.bold, marginBottom: 4, letterSpacing: 0.3 },
-  whyText:  { fontSize: 13, lineHeight: 19, fontStyle: 'italic' },
 
   tipBox:   { borderLeftWidth: 2, paddingLeft: 10, marginBottom: 10 },
   tipLabel: { fontSize: 11, fontWeight: FONTS.bold, marginBottom: 3 },
